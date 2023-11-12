@@ -1,23 +1,26 @@
-name: Android Build
-
-on: push
+name: Build
+on:
+  push:
 
 jobs:
-  build:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v1
+# Build job. Builds app for Android with Buildozer
+build-android:
+  name: Build for Android
+  runs-on: ubuntu-latest
 
-      - name: Set Up JDK
-        uses: actions/setup-java@v1
-        with:
-          java-version: 1.11
+  steps:
+    - name: Checkout
+      uses: actions/checkout@v2
 
-      - name: Build Project
-        run: ./gradlew assemble
+    - name: Build with Buildozer
+      uses: ArtemSBulgakov/buildozer-action@v1
+      id: buildozer
+      with:
+        workdir: <specify the directory of the app no don't mention this the app files are in root directory>
+        buildozer_version: stable
 
-      - name: Run Tests
-        run: ./gradlew test
-
-      - name: Lint Checks
-        run: ./gradlew detekt ktlintCheck lint
+    - name: Upload artifacts
+      uses: actions/upload-artifact@v2
+      with:
+        name: package
+        path: ${{ steps.buildozer.outputs.filename }}
