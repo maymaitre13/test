@@ -1,26 +1,44 @@
-name: Build
+name: Send APK to AppCenter
 on:
   push:
 
 jobs:
-# Build job. Builds app for Android with Buildozer
-build-android:
-  name: Build for Android
-  runs-on: ubuntu-latest
 
-  steps:
-    - name: Checkout
-      uses: actions/checkout@v2
+  apk:
+    runs-on: ubuntu-latest
 
-    - name: Build with Buildozer
-      uses: ArtemSBulgakov/buildozer-action@v1
-      id: buildozer
-      with:
-        workdir: <specify the directory of the app no don't mention this the app files are in root directory>
-        buildozer_version: stable
+    steps:
+      - uses: actions/checkout@v1
+      - name: set up JDK 11  // you need to define JDK version here
+        uses: actions/setup-java@v1
+        with:
+          java-version: 11
 
-    - name: Upload artifacts
-      uses: actions/upload-artifact@v2
-      with:
-        name: package
-        path: ${{ steps.buildozer.outputs.filename }}
+      - name: Manage Version
+        uses: chkfung/android-version-actions@v1.1
+        with:
+          gradlePath: app/build.gradle
+          versionCode: ${{github.run_number}} 
+          versionName: 1.0.0
+
+      - name: Grant Permission to Execute
+        run: chmod +x gradlew
+
+      - name: Build debug APK
+        run: bash ./gradlew assembleDebug --stacktrace
+
+      - name: Upload APK to Github Artifacts
+        uses: actions/upload-artifact@v1
+        with:
+          name: app
+          path: app/build/outputs/apk/debug/app-debug.apk
+
+      - name: Distribute to AppCenter
+        uses: wzieba/AppCenter-Github-Action@v1.3.2
+        with:
+          appName: ${{secrets.APP_CENTER_APP_NAME}}
+          token: ${{ secrets.APP_CENTER_TOKEN }}
+          group: Collaborators
+          file: app/build/outputs/apk/debug/app-debug.apk
+          notifyTesters: true
+          debug: false
